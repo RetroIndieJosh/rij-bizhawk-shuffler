@@ -13,9 +13,10 @@ extra-life:
   # Instructions to find your participant ID:
   # 1. Go to https://www.extra-life.org/
   # 2. Log in and make sure you're signed up for a campaign this year
-  # 3. Click "Dashboard" at the top
+  # 3. Click "Dashboard" at the top (you may need to also change to a different
+  # year than change back to get the correct URL to appear)
   # 4. Get the number from the end of the URL: participantID=<ID>
-  participant-id: 559845  # Retro Indie Josh
+  participant-id: 553302  # Retro Indie Josh
   # File where fetched donor usernames are stored
   donors-file: extra-life-donors.txt
   # Interval in minutes to update donor list
