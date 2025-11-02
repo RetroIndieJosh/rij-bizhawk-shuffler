@@ -1,4 +1,12 @@
-# Bizhawk Shuffler 2
+# RIJ BizHawk Shuffler
+With additional plugins by [Retro Indie Josh](retroindiejosh.itch.io)
+
+## Ideas
+- swap to a specific game (is this possible?), like !swap Mega Man 2
+- prettier transitions for messages on screen (Josh's Countdown, swapper name for YouTube swap)
+- stats tracking for YouTube swap, like # of swaps per viewer
+
+## Original Bizhawk Shuffler 2
 * written by authorblues, inspired by [Brossentia's Bizhawk Shuffler](https://github.com/brossentia/BizHawk-Shuffler), based on slowbeef's original project
 * [tested on Bizhawk v2.6.3-v2.10](https://github.com/TASVideos/BizHawk/releases/)  
 * [click here to download the latest version](https://github.com/authorblues/bizhawk-shuffler-2/archive/refs/heads/main.zip)
