@@ -1,0 +1,22 @@
+# ================= YOUTUBE CONFIG =================
+youtube:
+  # User who bypasses per-user cooldown
+  host: RetroIndieJosh
+  # YouTube video ID to read chat from
+  video-id: mCS59MK_eZA
+  # File where chat messages are written
+  chatfile: youtube-chat.txt
+
+# ================= EXTRA LIFE CONFIG =================
+extra-life:
+  # Your participant ID is required
+  # Instructions to find your participant ID:
+  # 1. Go to https://www.extra-life.org/
+  # 2. Log in and make sure you're signed up for a campaign this year
+  # 3. Click "Dashboard" at the top
+  # 4. Get the number from the end of the URL: participantID=<ID>
+  participant-id: 559845  # Retro Indie Josh
+  # File where fetched donor usernames are stored
+  donors-file: extra-life-donors.txt
+  # Interval in minutes to update donor list
+  update-interval: 10
