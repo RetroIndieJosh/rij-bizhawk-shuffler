@@ -28,7 +28,6 @@ plugin.state = {
 local CENTER_DURATION = 2 * 60 -- 2 seconds
 local CORNER_DURATION = 3 * 60 -- 3 seconds
 
--- Read file into table of lines
 local function read_file_lines(file_path)
     local lines = {}
     local fp = io.open(file_path, "r")
@@ -41,7 +40,6 @@ local function read_file_lines(file_path)
     return lines
 end
 
--- Load games list from file
 local function load_games(file_path)
     local games = {}
     local lines = read_file_lines(file_path)
@@ -53,14 +51,20 @@ local function load_games(file_path)
     return games
 end
 
--- Normalize strings for fuzzy matching
 local function normalize(str)
     return str:lower():gsub("%.[^%.]+$", ""):gsub("[^a-z0-9]", "")
 end
 
--- Fuzzy match input to game list
+-- exact match first, then fuzzy
 local function match_game(input, games)
     local norm_input = normalize(input)
+    -- exact match
+    for _, game in ipairs(games) do
+        if normalize(game) == norm_input then
+            return game
+        end
+    end
+    -- partial match
     for _, game in ipairs(games) do
         if normalize(game):find(norm_input) then
             return game
@@ -69,14 +73,12 @@ local function match_game(input, games)
     return nil
 end
 
--- Initialize games list at plugin startup
 plugin.state.games = load_games(plugin.settings.gamesfile or "games/.games-list.txt")
 print("[INFO] Games loaded from file:")
 for _, g in ipairs(plugin.state.games) do
     print("  " .. g)
 end
 
--- Grab global swap_game function
 local swap_game_global = _G.swap_game
 
 function plugin.on_frame(state, settings)
@@ -94,7 +96,6 @@ function plugin.on_frame(state, settings)
         local username = line:match("^(.-):") or "Unknown"
         username = username:gsub("^@", "")
 
-        -- Handle !swap
         if msg:find("!swap") then
             state.display_text = "SWAP\n" .. username
             state.display_frames_left = CENTER_DURATION + CORNER_DURATION
@@ -105,11 +106,9 @@ function plugin.on_frame(state, settings)
             end
         end
 
-        -- Handle !play
         if msg:find("!play") then
             local input = line:match("!play%s+(.+)")
             if input then
-                -- Refresh game list each !play to catch new games
                 state.games = load_games(settings.gamesfile or "games/.games-list.txt")
                 local matched_game = match_game(input, state.games)
                 if matched_game then
@@ -123,6 +122,7 @@ function plugin.on_frame(state, settings)
                     end
                 else
                     print(string.format("[PLAY] No match found for '%s' from '%s'", input, username))
+                    -- Do NOT display any message
                 end
             end
         end
@@ -131,8 +131,8 @@ function plugin.on_frame(state, settings)
     state.last_line_index = #lines
 
     -- Draw messages
+    gui.use_surface('client')
     if state.display_frames_left > 0 and state.display_text then
-        gui.use_surface('client')
         local width, height = client.getwindowsize()
         width = width or 800
         height = height or 600
@@ -150,6 +150,9 @@ function plugin.on_frame(state, settings)
         if state.display_frames_left <= 0 then
             state.display_text = nil
         end
+    else
+        -- ensure display_text cleared after fade
+        state.display_text = nil
     end
 end
 
