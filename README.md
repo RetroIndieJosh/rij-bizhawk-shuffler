@@ -1,18 +1,21 @@
 # RIJ BizHawk Shuffler
 With additional plugins by [Retro Indie Josh](retroindiejosh.itch.io)
 
-## TODO - chat-swap
+## TODO - Extra Life / YouTube
+- rename to extra-life-youtube (and "Extra Life YouTube Integration")
 - visual indicator "LOCKED" when in lockdown
-
-## Ideas
-- swap to a specific game (is this possible?), like !swap Mega Man 2
-- prettier transitions for messages on screen (Josh's Countdown, swapper name for YouTube swap)
+- somehow track !swaps and limit to $X/swap in donations
 - stats tracking for YouTube swap, like # of swaps per viewer
 - link to YouTube API so we can tell users when they need to donate more to unlock commands
     - if we're using the API we can also simplify by not writing to a file first
 - add minimum required donation to youtube-chat commands
 
-- somehow track !swaps and limit to $X/swap in donations
+## TODO - Archipelago
+- add "file" settings for each possible script
+
+## Ideas
+- swap to a specific game (is this possible?), like !swap Mega Man 2
+- prettier transitions for messages on screen (Josh's Countdown, swapper name for YouTube swap)
 
 ## Original Bizhawk Shuffler 2
 * written by authorblues, inspired by [Brossentia's Bizhawk Shuffler](https://github.com/brossentia/BizHawk-Shuffler), based on slowbeef's original project

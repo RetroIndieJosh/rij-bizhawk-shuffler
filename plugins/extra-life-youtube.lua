@@ -1,6 +1,6 @@
 local plugin = {}
 
-plugin.name = "YouTube Chat Swap Display"
+plugin.name = "Extra Life YouTube Chat Integration"
 plugin.author = "retroindiejosh"
 plugin.minversion = "2.6.2"
 
