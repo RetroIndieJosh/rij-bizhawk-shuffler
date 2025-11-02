@@ -6,6 +6,7 @@ shuffler-src/.cmd-output.txt
 message.log
 youtube-chat.txt
 youtube-url.txt
+extra-life-donors.txt
 
 # Compiled Lua sources
 luac.out

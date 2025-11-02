@@ -10,6 +10,8 @@ With additional plugins by [Retro Indie Josh](retroindiejosh.itch.io)
 - stats tracking for YouTube swap, like # of swaps per viewer
 - link to YouTube API so we can tell users when they need to donate more to unlock commands
 - add minimum required donation to youtube-chat commands
+
+- regularly update the extra_life output (run alongside chat logger in infinite loop?)
 - combine extra_life and chat_logger to run together since they're dependent
     - only one yaml to configure, we can have top-level extra-life and youtube keys
 

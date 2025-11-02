@@ -1,0 +1,8 @@
+# The user who is exempt from per-user cooldown (host/mod)
+host: RetroIndieJosh
+
+# YouTube video ID to read chat from
+video-id: mCS59MK_eZA
+
+# List of banned users whose chat is ignored
+banned: []
