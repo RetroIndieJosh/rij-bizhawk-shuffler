@@ -9,6 +9,7 @@ With additional plugins by [Retro Indie Josh](retroindiejosh.itch.io)
 - prettier transitions for messages on screen (Josh's Countdown, swapper name for YouTube swap)
 - stats tracking for YouTube swap, like # of swaps per viewer
 - link to YouTube API so we can tell users when they need to donate more to unlock commands
+    - if we're using the API we can also simplify by not writing to a file first
 - add minimum required donation to youtube-chat commands
 
 - regularly update the extra_life output (run alongside chat logger in infinite loop?)
