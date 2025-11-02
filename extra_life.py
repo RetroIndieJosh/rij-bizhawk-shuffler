@@ -5,6 +5,7 @@ import threading
 from datetime import datetime
 from collections import deque
 import re
+import requests
 
 # ================= Load Config =================
 CONFIG_FILE = "config.yaml"
@@ -43,20 +44,17 @@ write_lock = threading.Lock()
 WRITE_INTERVAL = 1  # seconds
 
 # ================= Helper Functions =================
-
 def normalize_name(name):
     """Normalize names for matching: lowercase, remove non-alphanumerics."""
     return re.sub(r'[^a-z0-9]', '', name.lower())
 
 def is_donor(username):
-    """Return True if the user is the host or in the donors list."""
     username_norm = normalize_name(username)
     if username_norm == normalize_name(HOST):
         return True
     return any(username_norm == normalize_name(donor) for donor in donors)
 
 def fetch_donors():
-    import requests
     url = f"https://extra-life.donordrive.com/api/participants/{PARTICIPANT_ID}/donations"
     try:
         resp = requests.get(url)
@@ -74,24 +72,31 @@ def fetch_donors():
     except Exception as e:
         print(f"[ERROR] Failed to fetch donors: {e}")
 
-def can_swap(username):
+def can_play(username):
     global last_global_swap
     now = datetime.now()
     username_lower = username.lower()
+
+    # Global cooldown applies to everyone, including host
     if (now - last_global_swap).total_seconds() < global_cooldown:
         return False, "Global cooldown"
-    if locked and normalize_name(username) != normalize_name(HOST):
-        return False, "Locked"
-    if username_lower in banned_users:
-        return False, "Banned"
-    if not is_donor(username):
-        return False, "Not a donor"
-    last = last_user_swap.get(username_lower, datetime.min)
-    if normalize_name(username) != normalize_name(HOST) and (now - last).total_seconds() < per_user_cooldown:
-        return False, "User cooldown"
+
+    # All other checks only apply to non-hosts
+    if normalize_name(username) != normalize_name(HOST):
+        if locked:
+            return False, "Locked"
+        if username_lower in banned_users:
+            return False, "Banned"
+        if not is_donor(username):
+            return False, "Not a donor"
+        last = last_user_swap.get(username_lower, datetime.min)
+        if (now - last).total_seconds() < per_user_cooldown:
+            return False, "User cooldown"
+
     return True, ""
 
-def record_swap(username):
+
+def record_play(username):
     global last_global_swap
     now = datetime.now()
     last_global_swap = now
@@ -103,18 +108,16 @@ def unlock():
     if lock_timer:
         lock_timer.cancel()
         lock_timer = None
-    print(f"[INFO] Swaps unlocked by host")
+    print(f"[INFO] Plays unlocked by host")
 
-def enqueue_write(author, message, swap=False):
-    """Add messages to queues for batched writing."""
+def enqueue_write(author, message, play=False):
     author_clean = author.lstrip('@')
     with write_lock:
         full_chat_queue.append(f"{author_clean}: {message}\n")
-        if swap:
+        if play:
             swap_chat_queue.append(f"{author_clean}: {message}\n")
 
 def process_message(author, message):
-    # Clean author for logging and writing
     author_clean = author.lstrip('@')
     author_lower = author_clean.lower()
     msg_lower = message.lower().strip()
@@ -137,7 +140,7 @@ def process_message(author, message):
         elif msg_lower.startswith("!lock"):
             global locked, lock_timer
             locked = True
-            print(f"[INFO] Swaps locked by host")
+            print(f"[INFO] Plays locked by host")
             parts = msg_lower.split()
             if len(parts) == 2 and parts[1].isdigit():
                 minutes = int(parts[1])
@@ -150,21 +153,19 @@ def process_message(author, message):
             unlock()
             return
 
-    # Only process swaps
-    if not msg_lower.startswith("!swap"):
-        print(f"[IGNORED] @{author_clean}: {message} [Not !swap]")
+    # Only process !play or !swap messages for logging
+    if msg_lower.startswith("!play") or msg_lower.startswith("!swap"):
+        ok, reason = can_play(author_clean)
+        if not ok:
+            print(f"[IGNORED] @{author_clean}: {message} [{reason}]")
+            enqueue_write(author_clean, message)  # still goes to full chat
+            return
+        record_play(author_clean)
+        enqueue_write(author_clean, message, play=True)  # now goes to swap/chat log
+        print(f"[PLAY/SWAP] @{author_clean}: {message}")
+    else:
         enqueue_write(author_clean, message)
-        return
-
-    ok, reason = can_swap(author_clean)
-    if not ok:
-        print(f"[IGNORED] @{author_clean}: {message} [{reason}]")
-        enqueue_write(author_clean, message)
-        return
-
-    record_swap(author_clean)
-    enqueue_write(author_clean, message, swap=True)
-    print(f"[SWAP] @{author_clean}: {message}")
+        print(f"[CHAT] @{author_clean}: {message}")
 
 # ================= Writer Thread =================
 def writer_thread():
@@ -188,15 +189,21 @@ def donor_updater():
 
 # ================= YouTube Chat Listener =================
 def youtube_chat_listener():
-    chat = pytchat.create(video_id=VIDEO_ID)
-    print(f"[INFO] Connected to YouTube video: {VIDEO_ID}")
-    while chat.is_alive():
-        for c in chat.get().sync_items():
-            process_message(c.author.name, c.message)
-        time.sleep(0.05)
+    while True:
+        try:
+            chat = pytchat.create(video_id=VIDEO_ID)
+            print(f"[INFO] Connected to YouTube video: {VIDEO_ID}")
+            while chat.is_alive():
+                for c in chat.get().sync_items():
+                    process_message(c.author.name, c.message)
+                time.sleep(0.05)
+        except Exception as e:
+            print(f"[ERROR] Chat connection failed: {e}. Reconnecting in 5 seconds...")
+            time.sleep(5)
 
 # ================= Main =================
 if __name__ == "__main__":
+    # Clear old files
     open(CHAT_FILE, 'w').close()
     open(CHAT_FULL_FILE, 'w').close()
     donors.clear()
