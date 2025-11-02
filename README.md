@@ -12,9 +12,7 @@ With additional plugins by [Retro Indie Josh](retroindiejosh.itch.io)
     - if we're using the API we can also simplify by not writing to a file first
 - add minimum required donation to youtube-chat commands
 
-- regularly update the extra_life output (run alongside chat logger in infinite loop?)
-- combine extra_life and chat_logger to run together since they're dependent
-    - only one yaml to configure, we can have top-level extra-life and youtube keys
+- somehow track !swaps and limit to $X/swap in donations
 
 ## Original Bizhawk Shuffler 2
 * written by authorblues, inspired by [Brossentia's Bizhawk Shuffler](https://github.com/brossentia/BizHawk-Shuffler), based on slowbeef's original project
