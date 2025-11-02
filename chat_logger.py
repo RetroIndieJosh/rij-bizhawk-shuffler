@@ -1,42 +1,36 @@
-"""
-YouTube Chat Logger for BizHawk Chat Swap Plugin
-Requires: pytchat (pip install pytchat)
-Only writes messages that are exactly "!swap".
-"""
-
 import pytchat
 import time
-import os
 
-# ===== CONFIG =====
-VIDEO_ID = "VIDEO ID HERE"        # Replace with your YouTube live video ID
-OUTPUT_FILE = "youtube-chat.txt"  # Path to your plugin chat file
-# ==================
+# Load the YouTube URL from a file
+with open("youtube-url.txt", "r") as f:
+    YOUTUBE_URL = f.read().strip()
 
-def main():
-    # Ensure file exists
-    if not os.path.exists(OUTPUT_FILE):
-        open(OUTPUT_FILE, "w", encoding="utf-8").close()
+OUTPUT_FILE = "youtube-chat.txt"
+COOLDOWN = 60  # seconds per user
+last_swap_by_user = {}
 
-    chat = pytchat.create(video_id=VIDEO_ID, interruptable=False)
-    print(f"Logging !swap messages from video {VIDEO_ID} to {OUTPUT_FILE}...")
+# Clear the output file at startup
+with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+    pass  # open and close to empty the file
 
-    try:
-        while chat.is_alive():
-            for c in chat.get().sync_items():
-                message = c.message.strip().lower()
-                if message == "!swap":
-                    # Append message to file
-                    with open(OUTPUT_FILE, "a", encoding="utf-8") as f:
-                        f.write("!swap\n")
-                        f.flush()  # ensure plugin reads it immediately
-            time.sleep(0.1)
+chat = pytchat.create(video_id=YOUTUBE_URL)
 
-    except KeyboardInterrupt:
-        print("Stopping chat logger...")
-    finally:
-        chat.terminate()
+print(f"Listening to chat on {YOUTUBE_URL}...")
 
+while chat.is_alive():
+    for c in chat.get().sync_items():
+        username = c.author.name
+        message = c.message.strip()
 
-if __name__ == "__main__":
-    main()
+        # Print every message to console
+        print(f"{username}: {message}")
+
+        # Only log !swap messages to file with per-user cooldown
+        if message.lower() == "!swap":
+            current_time = time.time()
+            last_time = last_swap_by_user.get(username, 0)
+            if current_time - last_time >= COOLDOWN:
+                last_swap_by_user[username] = current_time
+                with open(OUTPUT_FILE, "a", encoding="utf-8") as f:
+                    f.write(f"{username}: !swap\n")
+                    f.flush()

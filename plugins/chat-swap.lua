@@ -5,70 +5,81 @@ plugin.author = "retroindiejosh"
 plugin.minversion = "2.6.2"
 
 plugin.settings = {
-    { name='chatfile', type='file', label='Chat File' },
-    { name='cooldown', type='number', label='Swap cooldown (seconds)', default=10, min=1 },
+    { name='chatfile', type='file', label='Chat File', default='youtube-chat.txt' },
+    { name='fontsize', type='number', label='Font Size', default=32 },
+    { name='displaytime', type='number', label='Display Username Time (frames)', default=120 },
 }
 
 plugin.description = [[
-Triggers a game swap when a chat message "!swap" is detected in a text file.
-- The file path is configurable via a file picker.
-- Respects a cooldown period to prevent multiple swaps in quick succession.
+Triggers a game swap when a "!swap" message is detected in the chat file.
+Displays the username who triggered the swap on-screen for a short time.
+Prints all new messages to the console.
 ]]
 
+-- Plugin state
 plugin.state = {
-    last_messages = {},
-    last_swap_frame = -math.huge, -- ensures arithmetic works on first frame
+    last_line_index = 0,
+    display_username = nil,
+    display_frames_left = 0,
 }
 
--- Utility: read chat file into a table
-local function read_chat_file(file_path)
-    local messages = {}
-    if not file_path or file_path == "" then return messages end
-
+-- Read file into table of lines
+local function read_file_lines(file_path)
+    local lines = {}
     local fp = io.open(file_path, "r")
     if fp then
         for line in fp:lines() do
-            table.insert(messages, line)
+            table.insert(lines, line)
         end
         fp:close()
     end
-    return messages
+    return lines
 end
 
 function plugin.on_frame(state, settings)
-    -- Ensure state fields exist
-    state.last_messages = state.last_messages or {}
-    state.last_swap_frame = state.last_swap_frame or -math.huge
+    if not settings.chatfile or settings.chatfile == "" then return end
 
-    local chat_file = settings.chatfile
-    if not chat_file or chat_file == "" then return end
+    -- Read all lines
+    local lines = read_file_lines(settings.chatfile)
+    if #lines == 0 then return end
 
-    local messages = read_chat_file(chat_file)
-    if #messages == 0 then return end
+    -- Process new lines
+    local start_index = (state.last_line_index or 0) + 1
+    for i = start_index, #lines do
+        local line = lines[i]
+        local msg = line:lower()
 
-    -- Only process new messages
-    local last_index = #state.last_messages
-    local new_messages = {}
-    for i = last_index + 1, #messages do
-        table.insert(new_messages, messages[i])
-    end
+        -- Print all new messages
+        print("[Chat] " .. line)
 
-    -- Convert cooldown to frames (BizHawk ~60 FPS)
-    local cooldown_frames = (settings.cooldown or 10) * 60
+        -- Check for !swap
+        if msg:find("!swap") then
+            -- Extract username if format is "Username: !swap"
+            local username = line:match("^(.-):") or "Unknown"
 
-    -- Check for "!swap" commands
-    for _, msg in ipairs(new_messages) do
-        if msg:lower():find("!swap") then
-            if (config.frame_count - state.last_swap_frame) >= cooldown_frames then
-                swap_game() -- call shuffler's swap function
-                state.last_swap_frame = config.frame_count
-                break -- only trigger once per frame
+            -- Display username on-screen
+            state.display_username = username
+            state.display_frames_left = settings.displaytime or 120
+
+            -- Trigger swap safely
+            if swap_game then
+                pcall(swap_game)
+            else
+                print("[Chat Swap Plugin] swap_game() not found")
             end
         end
     end
 
-    -- Update state
-    state.last_messages = messages
+    -- Update last line index
+    state.last_line_index = #lines
+
+    -- Draw the username if display_frames_left > 0
+    if state.display_frames_left > 0 and state.display_username then
+        gui.use_surface('client')
+        gui.drawText(50, 50, "Swap triggered by: " .. state.display_username,
+                     0xFFFFFFFF, 0xFF000000, settings.fontsize or 32)
+        state.display_frames_left = state.display_frames_left - 1
+    end
 end
 
 return plugin
