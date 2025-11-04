@@ -6,6 +6,7 @@ plugin.minversion = "2.6.2"
 
 plugin.settings = {
     { name='chatfile', type='file', label='Chat File', default='youtube-chat.txt' },
+    { name='playedfile', type='file', label='Played Game File', default='youtube-played.txt' },
     { name='fontsize_big', type='number', label='Big Font Size', default=128 },
     { name='fontsize_small', type='number', label='Corner Font Size', default=32 },
     { name='gamesfile', type='file', label='Games List File', default='games/.games-list.txt' },
@@ -15,6 +16,7 @@ plugin.description = [[
 Detects !play and !swap commands in chat.
 Prints the game to be played, then calls swap_game(game_name) for !play or swap_game() for !swap.
 Displays messages big in the center, then smaller in the corner with fade.
+Writes matched games to youtube-played.txt for Python bot integration.
 ]]
 
 -- Plugin state
@@ -55,20 +57,13 @@ local function normalize(str)
     return str:lower():gsub("%.[^%.]+$", ""):gsub("[^a-z0-9]", "")
 end
 
--- exact match first, then fuzzy
 local function match_game(input, games)
     local norm_input = normalize(input)
-    -- exact match
     for _, game in ipairs(games) do
-        if normalize(game) == norm_input then
-            return game
-        end
+        if normalize(game) == norm_input then return game end
     end
-    -- partial match
     for _, game in ipairs(games) do
-        if normalize(game):find(norm_input) then
-            return game
-        end
+        if normalize(game):find(norm_input) then return game end
     end
     return nil
 end
@@ -96,9 +91,10 @@ function plugin.on_frame(state, settings)
         local username = line:match("^(.-):") or "Unknown"
         username = username:gsub("^@", "")
 
+        -- !swap command
         if msg:find("!swap") then
             state.display_text = "SWAP\n" .. username
-            state.display_frames_left = CENTER_DURATION + CORNER_DURATION
+            state.display_frames_left = (CENTER_DURATION + CORNER_DURATION)
             if swap_game_global then
                 pcall(swap_game_global)
             else
@@ -106,23 +102,60 @@ function plugin.on_frame(state, settings)
             end
         end
 
+        -- !play command
         if msg:find("!play") then
             local input = line:match("!play%s+(.+)")
             if input then
                 state.games = load_games(settings.gamesfile or "games/.games-list.txt")
-                local matched_game = match_game(input, state.games)
+                local matched_game = nil
+                local norm_input = normalize(input)
+                -- exact match first
+                for _, game in ipairs(state.games) do
+                    if normalize(game) == norm_input then
+                        matched_game = game
+                        break
+                    end
+                end
+
+                -- partial match if exact failed
+                if not matched_game then
+                    local norm_input_lower = norm_input -- already normalized
+                    for _, game in ipairs(state.games) do
+                        local norm_game = normalize(game)
+                        if type(norm_game) == "string" and string.find(norm_game, norm_input_lower, 1, true) then
+                            matched_game = game
+                            break
+                        end
+                    end
+                end
+
                 if matched_game then
                     print(string.format("[PLAY] User '%s' requested game: %s", username, matched_game))
                     state.display_text = "PLAY\n" .. matched_game
-                    state.display_frames_left = CENTER_DURATION + CORNER_DURATION
+                    state.display_frames_left = (CENTER_DURATION + CORNER_DURATION)
                     if swap_game_global then
                         pcall(swap_game_global, matched_game)
                     else
                         print("[WARN] swap_game() not found")
                     end
+                    -- Write matched game to Python file
+                    local played_fp = io.open(settings.playedfile or "youtube-played.txt", "a")
+                    if played_fp then
+                        played_fp:write(username .. ":" .. matched_game .. "\n")
+                        played_fp:close()
+                    else
+                        print("[WARN] Could not write to youtube-played.txt")
+                    end
                 else
                     print(string.format("[PLAY] No match found for '%s' from '%s'", input, username))
-                    -- Do NOT display any message
+                    -- Write a "no match" line for Python
+                    local played_fp = io.open(settings.playedfile or "youtube-played.txt", "a")
+                    if played_fp then
+                        played_fp:write(username .. ":__NO_MATCH__\n")
+                        played_fp:close()
+                    else
+                        print("[WARN] Could not write to youtube-played.txt")
+                    end
                 end
             end
         end
@@ -130,8 +163,9 @@ function plugin.on_frame(state, settings)
 
     state.last_line_index = #lines
 
-    -- Draw messages
+    -- Draw messages safely
     gui.use_surface('client')
+    state.display_frames_left = state.display_frames_left or 0
     if state.display_frames_left > 0 and state.display_text then
         local width, height = client.getwindowsize()
         width = width or 800
@@ -151,7 +185,6 @@ function plugin.on_frame(state, settings)
             state.display_text = nil
         end
     else
-        -- ensure display_text cleared after fade
         state.display_text = nil
     end
 end
