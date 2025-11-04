@@ -3,11 +3,19 @@ output-info/*
 start-states/*
 shuffler-src/config.lua
 shuffler-src/.cmd-output.txt
+
+# Log and communication text files
 message.log
 youtube-chat.txt
 youtube-chat-full.txt
 youtube-url.txt
 extra-life-donors.txt
+
+# Secrets
+credentials.json
+
+# Google API generated pickles
+*.pickle
 
 # Compiled Lua sources
 luac.out
