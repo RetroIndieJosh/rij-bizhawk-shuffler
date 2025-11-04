@@ -2,17 +2,27 @@
 With additional plugins by [Retro Indie Josh](retroindiejosh.itch.io)
 
 ## TODO - Extra Life / YouTube
-- failed match shouldn't reset per-user cooldown
-- strike system for not respecting cooldown
-    - after X strikes, timeout chatter for 10x cooldown
-    - after X timeouts, ban chatter
+- don't reset per-user cooldown when a match for !play fails
+- warn the user when they're trying to use a command but they're on cooldown
+- give a user a "strike" when they're warned about cooldown
+- add a !timeout <user> command which puts the user on timeout for "timeout multiplier" (defined in yaml) times per-user cooldown (meaning their commands will be ignored)
+- update the !ban command so it doesn't do anything locally but instead uses the YouTube API to properly ban the chatter
+- give a strike for any of the following:
+    - using a command during cooldown: 
+        - warn that if they reach X strikes, they'll be put in timeout
+        - tell them how much time is left in the cooldown
+    - using a command during timeout
+        - warn that if they reach X strikes, they'll be banned
+        - tell them how much time is left in their timeout
+- after X strikes (defined in yaml), apply !timeout to the chatter
+    - if the chatter is already timed out, !ban them
 - options in yaml
-    - global cooldown
-    - per-user cooldown
-    - number of strikes before timeout
-    - timeout multiplier (per-user cooldown x this value)
-    - number of timeouts before ban
-    - enable/disable consecutive command from same chatter
+    - global cooldown (seconds, default 5)
+    - per-user cooldown (seconds, default 60)
+    - number of strikes before timeout (default 3)
+    - timeout multiplier (default 10)
+    - number of timeouts before ban (default 3)
+    - enable/disable consecutive commands from same chatter
     - messages and whether to display them:
         - swap success
         - swap fail (cooldown, should show remaining time)
